@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Лепта</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=PT+Serif:ital,wght@0,400;0,700;1,400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --p: #534AB7;
+    --pd: #26215C;
+    --pl: #EEEDFE;
+    --pp: #F4F3FF;
+    --g: #0F6E56;
+    --t: #1C1C1E;
+    --tm: #6B6B6B;
+    --b: #EAE7F7;
+    --white: #FFFFFF;
+    --radius: 14px;
+    --tg-bg: var(--tg-theme-bg-color, #ffffff);
+    --tg-text: var(--tg-theme-text-color, #1C1C1E);
+    --tg-hint: var(--tg-theme-hint-color, #6B6B6B);
+    --tg-btn: var(--tg-theme-button-color, #534AB7);
+    --tg-btn-text: var(--tg-theme-button-text-color, #ffffff);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; overflow: hidden; }
+  body {
+    font-family: 'Inter', -apple-system, sans-serif;
+    background: var(--tg-bg);
+    color: var(--tg-text);
+    font-size: 15px;
+    overscroll-behavior: none;
+  }
+
+  /* ── Shell ── */
+  #app { height: 100vh; display: flex; flex-direction: column; }
+  #header {
+    background: var(--pd);
+    padding: 14px 20px 12px;
+    display: flex; align-items: center; gap: 10px;
+    flex-shrink: 0;
+  }
+  #header h1 { font-family: 'PT Serif', serif; color: #fff; font-size: 18px; font-weight: 700; }
+  #header .sub { color: rgba(255,255,255,0.55); font-size: 12px; }
+  #progress-bar { height: 3px; background: var(--b); flex-shrink: 0; }
+  #progress-fill { height: 100%; background: linear-gradient(90deg, var(--pd), var(--p)); transition: width .4s; }
+  #content { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 20px 16px 120px; }
+  #footer {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    padding: 12px 16px;
+    background: var(--tg-bg);
+    border-top: 1px solid var(--b);
+    display: flex; gap: 10px;
+    padding-bottom: max(12px, env(safe-area-inset-bottom));
+  }
+
+  /* ── Typography ── */
+  .h1 { font-family: 'PT Serif', serif; font-size: 24px; color: var(--pd); line-height: 1.25; margin-bottom: 6px; }
+  .sub { color: var(--tm); font-size: 13px; line-height: 1.5; margin-bottom: 20px; }
+  .label { display: block; font-weight: 600; font-size: 13px; color: var(--pd); margin-bottom: 6px; margin-top: 16px; }
+  .hint { font-size: 12px; color: var(--tm); margin-top: 5px; line-height: 1.5; }
+
+  /* ── Buttons ── */
+  .btn {
+    flex: 1; border: none; border-radius: 12px;
+    padding: 14px; font-size: 15px; font-weight: 600;
+    cursor: pointer; transition: all .15s; font-family: inherit;
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+  }
+  .btn-primary { background: var(--p); color: #fff; }
+  .btn-primary:active { background: #3C3489; transform: scale(.98); }
+  .btn-primary:disabled { opacity: .4; }
+  .btn-ghost { background: var(--pl); color: var(--p); }
+  .btn-ghost:active { opacity: .7; }
+
+  /* ── Cards / Selectable ── */
+  .card { background: var(--white); border: 1px solid var(--b); border-radius: var(--radius); padding: 16px; margin-bottom: 10px; transition: all .15s; }
+  .sel { cursor: pointer; border: 2px solid var(--b); }
+  .sel:active { background: var(--pp); }
+  .sel.active { border-color: var(--p); background: var(--pp); }
+  .sel-row { display: flex; align-items: center; gap: 12px; }
+  .sel-icon { font-size: 26px; width: 36px; text-align: center; flex-shrink: 0; }
+  .sel-body { flex: 1; }
+  .sel-name { font-weight: 600; font-size: 15px; color: var(--pd); }
+  .sel-desc { font-size: 12px; color: var(--tm); margin-top: 2px; }
+  .sel-check { color: var(--p); font-size: 18px; font-weight: 700; opacity: 0; transition: opacity .15s; }
+  .sel.active .sel-check { opacity: 1; }
+  .sel-price { font-weight: 600; color: var(--p); font-size: 14px; }
+
+  /* ── Amount pills ── */
+  .amount-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; margin-bottom: 12px; }
+  .amt-pill {
+    border: 2px solid var(--b); border-radius: 10px;
+    padding: 12px 6px; text-align: center;
+    font-weight: 700; font-size: 15px; cursor: pointer;
+    background: var(--white); color: var(--t); transition: all .15s;
+    font-family: inherit;
+  }
+  .amt-pill.active { border-color: var(--p); background: var(--pp); color: var(--p); }
+  .amt-pill:active { transform: scale(.96); }
+
+  /* ── Tags ── */
+  .tags { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+  .tag {
+    padding: 8px 14px; border-radius: 20px;
+    border: 1.5px solid var(--b); background: var(--white);
+    font-size: 13px; color: var(--tm); cursor: pointer;
+    transition: all .15s; font-family: inherit;
+  }
+  .tag.active { border-color: var(--p); background: var(--p); color: #fff; }
+  .tag:active { transform: scale(.96); }
+
+  /* ── Input ── */
+  input, textarea, select {
+    width: 100%; border: 1.5px solid var(--b); border-radius: 10px;
+    padding: 12px 14px; font-size: 15px; font-family: inherit;
+    background: var(--white); color: var(--t);
+    outline: none; transition: border-color .2s;
+    -webkit-appearance: none;
+  }
+  input:focus, textarea:focus, select:focus { border-color: var(--p); box-shadow: 0 0 0 3px rgba(83,74,183,.1); }
+  textarea { resize: none; }
+  .search-wrap { position: relative; margin-bottom: 14px; }
+  .search-wrap input { padding-left: 40px; }
+  .search-icon { position: absolute; left: 13px; top: 50%; transform: translateY(-50%); font-size: 17px; }
+
+  /* ── Checkbox row ── */
+  .check-row {
+    display: flex; align-items: center; gap: 12px;
+    background: var(--pp); border-radius: 12px; padding: 14px 16px;
+    cursor: pointer; margin-top: 14px;
+  }
+  .check-row input[type=checkbox] { width: 20px; height: 20px; accent-color: var(--p); cursor: pointer; flex-shrink: 0; }
+  .check-row label { font-size: 14px; font-weight: 500; color: var(--pd); cursor: pointer; }
+
+  /* ── Summary ── */
+  .sum-row { display: flex; justify-content: space-between; padding: 9px 0; border-bottom: 1px dashed var(--b); font-size: 14px; }
+  .sum-row:last-child { border: none; }
+  .sum-key { color: var(--tm); }
+  .sum-val { font-weight: 500; text-align: right; max-width: 60%; }
+  .sum-total { display: flex; justify-content: space-between; padding: 12px 0 0; font-weight: 700; font-size: 17px; }
+  .sum-total .amt { color: var(--p); font-size: 22px; }
+
+  /* ── Trust row ── */
+  .trust-row { display: flex; gap: 8px; background: #F0FBF8; border-radius: 12px; padding: 14px; margin-top: 16px; }
+  .trust-row .ico { font-size: 20px; flex-shrink: 0; }
+  .trust-row p { font-size: 12px; color: var(--tm); line-height: 1.6; }
+
+  /* ── Blockquote ── */
+  blockquote {
+    border-left: 3px solid var(--p); padding: 12px 14px;
+    background: var(--pl); border-radius: 0 10px 10px 0;
+    font-family: 'PT Serif', serif; font-style: italic;
+    font-size: 14px; color: var(--pd); line-height: 1.7;
+    margin: 16px 0;
+  }
+
+  /* ── Accordion ── */
+  .acc-item { border-bottom: 1px solid var(--b); }
+  .acc-head { width: 100%; background: none; border: none; cursor: pointer; display: flex; justify-content: space-between; align-items: center; padding: 14px 0; font-size: 14px; font-weight: 500; color: var(--pd); font-family: inherit; text-align: left; }
+  .acc-head .chevron { color: var(--tm); font-size: 18px; flex-shrink: 0; transition: transform .2s; }
+  .acc-head.open .chevron { transform: rotate(45deg); }
+  .acc-body { font-size: 13px; color: var(--tm); line-height: 1.7; padding-bottom: 14px; display: none; }
+  .acc-body.open { display: block; }
+
+  /* ── Step nav dots ── */
+  .step-nav { display: flex; gap: 4px; margin-bottom: 20px; }
+  .dot { height: 3px; border-radius: 2px; flex: 1; background: var(--b); transition: all .3s; }
+  .dot.done { background: rgba(83,74,183,.4); }
+  .dot.active { background: var(--p); flex: 2; }
+  .step-labels { display: flex; justify-content: space-between; font-size: 10px; color: var(--tm); margin-top: 4px; margin-bottom: 20px; }
+
+  /* ── Payment card ── */
+  .pay-card { background: var(--white); border: 1px solid var(--b); border-radius: var(--radius); padding: 18px; margin-bottom: 12px; }
+  .pay-card h3 { font-weight: 700; font-size: 14px; color: var(--pd); margin-bottom: 14px; }
+  .card-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .methods { display: flex; gap: 10px; margin-top: 14px; }
+  .method-btn { flex: 1; padding: 10px; border: 1.5px solid var(--b); border-radius: 10px; font-size: 12px; text-align: center; cursor: pointer; background: var(--white); font-family: inherit; color: var(--t); transition: all .15s; }
+  .method-btn.active { border-color: var(--p); background: var(--pp); color: var(--p); font-weight: 600; }
+
+  /* ── Success ── */
+  .success-wrap { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 70vh; text-align: center; padding: 20px; }
+  .success-wrap .big-icon { font-size: 72px; margin-bottom: 20px; }
+  .success-wrap h2 { font-family: 'PT Serif', serif; font-size: 28px; color: var(--pd); margin-bottom: 12px; }
+  .success-wrap p { color: var(--tm); font-size: 14px; line-height: 1.7; margin-bottom: 8px; }
+
+  /* ── Nav tabs ── */
+  #nav-tabs { display: flex; background: var(--pd); padding: 0 4px; flex-shrink: 0; }
+  .nav-tab { flex: 1; padding: 10px 4px 8px; border: none; background: none; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 3px; color: rgba(255,255,255,.45); font-size: 10px; font-family: inherit; transition: color .2s; border-bottom: 2px solid transparent; }
+  .nav-tab .ico { font-size: 20px; }
+  .nav-tab.active { color: #fff; border-color: #fff; }
+
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+  .fade-in { animation: fadeUp .25s ease forwards; }
+
+  /* Spinner */
+  .spinner { display: inline-block; width: 20px; height: 20px; border: 3px solid rgba(255,255,255,.3); border-top-color: white; border-radius: 50%; animation: spin .7s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<div id="app">
+  <div id="header">
+    <div>
+      <h1>✝ Лепта</h1>
+      <div class="sub" id="header-sub">пожертвования и требы</div>
+    </div>
+  </div>
+  <div id="progress-bar"><div id="progress-fill" style="width:0%"></div></div>
+  <div id="nav-tabs">
+    <button class="nav-tab active" onclick="switchTab('donate')" id="tab-donate">
+      <span class="ico">🕯️</span>Пожертвовать
+    </button>
+    <button class="nav-tab" onclick="switchTab('treba')" id="tab-treba">
+      <span class="ico">📿</span>Треба
+    </button>
+    <button class="nav-tab" onclick="switchTab('projects')" id="tab-projects">
+      <span class="ico">⛪</span>Проекты
+    </button>
+    <button class="nav-tab" onclick="switchTab('faq')" id="tab-faq">
+      <span class="ico">❓</span>FAQ
+    </button>
+  </div>
+  <div id="content"></div>
+  <div id="footer"></div>
+</div>
+
+<script>
+// ── Telegram WebApp init ──────────────────────────────────────────────────────
+const tg = window.Telegram?.WebApp;
+if (tg) {
+  tg.ready();
+  tg.expand();
+  tg.setHeaderColor('#26215C');
+  tg.setBackgroundColor('#FFFFFF');
+}
+
+// ── Data ─────────────────────────────────────────────────────────────────────
+const CHURCHES = [
+  { id:'ch1', name:'Храм Христа Спасителя', city:'Москва', e:'🕍' },
+  { id:'ch2', name:'Казанский собор', city:'Санкт-Петербург', e:'⛪' },
+  { id:'ch3', name:'Троице-Сергиева Лавра', city:'Сергиев Посад', e:'🏯' },
+  { id:'ch4', name:'Новодевичий монастырь', city:'Москва', e:'🏛️' },
+  { id:'ch5', name:'Храм Рождества Христова', city:'Суздаль', e:'✝️' },
+  { id:'ch6', name:'Никольский храм', city:'Кострома', e:'⛩️' },
+];
+
+const TREBAS = [
+  { id:'mol_zd', name:'Молебен о здравии', e:'🙏', desc:'Молитвенное прошение о здравии живых', price:300, type:'zdravie' },
+  { id:'pan', name:'Панихида', e:'✝️', desc:'Заупокойная служба по усопшим', price:300, type:'upokoi' },
+  { id:'sor_zd', name:'Сорокоуст о здравии', e:'📿', desc:'Поминовение живых на 40 Литургиях', price:500, type:'zdravie' },
+  { id:'sor_up', name:'Сорокоуст об упокоении', e:'📜', desc:'Заупокойное поминовение на 40 Литургиях', price:500, type:'upokoi' },
+  { id:'zap_zd', name:'Записка о здравии', e:'📋', desc:'Чтение имён на проскомидии за живых', price:100, type:'zdravie' },
+  { id:'zap_up', name:'Записка за упокой', e:'📖', desc:'Чтение имён на проскомидии за усопших', price:100, type:'upokoi' },
+];
+
+const PROJECTS = [
+  { id:'p1', title:'Реставрация кровли', church:'Храм Рождества Христова', city:'Суздаль', raised:340000, goal:600000, donors:127 },
+  { id:'p2', title:'Новый иконостас', church:'Храм Казанской иконы Б.М.', city:'Пенза', raised:120000, goal:450000, donors:48 },
+  { id:'p3', title:'Колокол для звонницы', church:'Никольский храм', city:'Кострома', raised:78000, goal:200000, donors:31 },
+];
+
+const FAQ = [
+  { s:'О пожертвованиях', items:[
+    { q:'Куда идут мои деньги?', a:'Напрямую на расчётный счёт выбранного прихода. Лепта не хранит ваши средства.' },
+    { q:'Могу получить квитанцию?', a:'Да, квитанция приходит на email автоматически после каждого платежа.' },
+    { q:'Как отменить регулярное пожертвование?', a:'В письме с квитанцией есть ссылка «Управление подпиской». Или напишите нам.' },
+  ]},
+  { s:'О требах', items:[
+    { q:'Как написать имена правильно?', a:'В родительном падеже, церковным именем: не «Саша», а «Александра»; не «Коля», а «Николая».' },
+    { q:'Когда совершается треба?', a:'Обычно в течение 1–3 дней, в зависимости от расписания храма.' },
+    { q:'Как я узнаю, что треба совершена?', a:'Вы получите уведомление на email или в Telegram, когда клирик отметит требу исполненной.' },
+  ]},
+  { s:'Безопасность', items:[
+    { q:'Это официальный сервис?', a:'Да. Лепта — зарегистрированное юридическое лицо. Все храмы-партнёры проверены.' },
+    { q:'Мои данные в безопасности?', a:'Да. Платёжные данные обрабатываются по стандарту PCI DSS. Карты не хранятся.' },
+  ]},
+];
+
+// ── State ─────────────────────────────────────────────────────────────────────
+let state = {
+  tab: 'donate',
+  // donate flow
+  donateStep: 0, // 0=church 1=amount 2=names 3=pay
+  donateChurch: null,
+  donateAmount: null,
+  donateCustom: '',
+  donateRecurrent: false,
+  donatePomin: '',
+  donateName: '',
+  donateEmail: '',
+  donatePayMethod: 'card',
+  // treba flow
+  trebaStep: 0, // 0=type 1=names 2=church 3=pay
+  trebaType: null,
+  trebaNames: '',
+  trebaChurch: '',
+  trebaEmail: '',
+  // ui
+  success: false,
+  successType: 'donate',
+  accOpen: {},
+  search: '',
+};
+
+const content = document.getElementById('content');
+const footer = document.getElementById('footer');
+const progressFill = document.getElementById('progress-fill');
+const headerSub = document.getElementById('header-sub');
+
+// ── Render engine ─────────────────────────────────────────────────────────────
+function render() {
+  if (state.success) { renderSuccess(); return; }
+  switch(state.tab) {
+    case 'donate': renderDonate(); break;
+    case 'treba': renderTreba(); break;
+    case 'projects': renderProjects(); break;
+    case 'faq': renderFaq(); break;
+  }
+}
+
+function switchTab(tab) {
+  state.tab = tab;
+  state.donateStep = 0;
+  state.trebaStep = 0;
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-' + tab)?.classList.add('active');
+  render();
+}
+
+// ── Donate ────────────────────────────────────────────────────────────────────
+const DONATE_STEPS = ['Храм','Сумма','Имена','Оплата'];
+
+function renderDonate() {
+  const s = state.donateStep;
+  progressFill.style.width = ((s / 3) * 100) + '%';
+  headerSub.textContent = 'Шаг ' + (s+1) + ' из 4 — ' + DONATE_STEPS[s];
+
+  let html = `<div class="fade-in">`;
+  // step nav
+  html += `<div class="step-nav">` + DONATE_STEPS.map((l,i) =>
+    `<div class="dot ${i < s ? 'done' : i === s ? 'active' : ''}"></div>`
+  ).join('') + `</div>`;
+  html += `<div class="step-labels">` + DONATE_STEPS.map(l => `<span>${l}</span>`).join('') + `</div>`;
+
+  if (s === 0) {
+    html += `<div class="h1">Выберите храм</div>`;
+    html += `<div class="sub">Деньги поступят напрямую на его расчётный счёт</div>`;
+    html += `<div class="search-wrap"><span class="search-icon">🔍</span><input id="search-inp" placeholder="Название или город…" value="${escHtml(state.search)}" oninput="state.search=this.value;renderDonate()"></div>`;
+    const filtered = CHURCHES.filter(c =>
+      c.name.toLowerCase().includes(state.search.toLowerCase()) ||
+      c.city.toLowerCase().includes(state.search.toLowerCase())
+    );
+    filtered.forEach(c => {
+      const active = state.donateChurch?.id === c.id;
+      html += `<div class="card sel ${active?'active':''}" onclick="state.donateChurch=${JSON.stringify(c).replace(/"/g,'&quot;')};renderDonate()">
+        <div class="sel-row">
+          <div class="sel-icon">${c.e}</div>
+          <div class="sel-body">
+            <div class="sel-name">${c.name}</div>
+            <div class="sel-desc">${c.city}</div>
+          </div>
+          <div class="sel-check">✓</div>
+        </div>
+      </div>`;
+    });
+  }
+
+  if (s === 1) {
+    html += `<div class="h1">Сумма пожертвования</div>`;
+    html += `<div class="sub">Храм: ${state.donateChurch?.name}</div>`;
+    html += `<div class="amount-grid">`;
+    [100,300,500,1000].forEach(a => {
+      html += `<button class="amt-pill ${state.donateAmount===a?'active':''}" onclick="state.donateAmount=${a};state.donateCustom='';renderDonate()">${a} ₽</button>`;
+    });
+    html += `</div>`;
+    html += `<input type="number" placeholder="Другая сумма, ₽" min="50" value="${state.donateCustom}" oninput="state.donateCustom=this.value;state.donateAmount=null;renderDonate()">`;
+    html += `<div class="check-row" onclick="state.donateRecurrent=!state.donateRecurrent;renderDonate()">
+      <input type="checkbox" ${state.donateRecurrent?'checked':''} readonly>
+      <label>Жертвовать каждый месяц автоматически</label>
+    </div>`;
+    if (state.donateRecurrent) html += `<p class="hint" style="margin-top:8px">Вы можете отменить в любой момент через письмо-квитанцию</p>`;
+  }
+
+  if (s === 2) {
+    html += `<div class="h1">Имя для поминовения</div>`;
+    html += `<div class="sub">Необязательное поле — можно пропустить</div>`;
+    html += `<span class="label">Ваше имя (в родительном падеже)</span>`;
+    html += `<input placeholder="Например: раба Божия Мария" value="${escHtml(state.donatePomin)}" oninput="state.donatePomin=this.value">`;
+    html += `<p class="hint">Пишите церковным именем: не «Наташа», а «Наталии»</p>`;
+    html += `<blockquote>«Истинно говорю вам, что эта бедная вдова положила больше всех» — Мк 12:43</blockquote>`;
+    html += `<div class="trust-row"><div class="ico">🔒</div><p><strong style="color:var(--g)">Безопасная оплата</strong><br>256-bit SSL · Деньги идут напрямую на счёт прихода · Квитанция на email</p></div>`;
+  }
+
+  if (s === 3) {
+    const finalAmt = state.donateAmount ?? parseInt(state.donateCustom) || 0;
+    html += `<div class="h1">Подтверждение</div>`;
+    html += `<div class="pay-card">
+      <h3>📋 Ваш заказ</h3>
+      <div class="sum-row"><span class="sum-key">Храм</span><span class="sum-val">${state.donateChurch?.name}</span></div>
+      <div class="sum-row"><span class="sum-key">Город</span><span class="sum-val">${state.donateChurch?.city}</span></div>
+      ${state.donatePomin ? `<div class="sum-row"><span class="sum-key">Поминовение</span><span class="sum-val">${escHtml(state.donatePomin)}</span></div>` : ''}
+      ${state.donateRecurrent ? `<div class="sum-row"><span class="sum-key">Тип</span><span class="sum-val" style="color:var(--p)">Ежемесячно ♻</span></div>` : ''}
+      <div class="sum-total"><span>Итого</span><span class="amt">${finalAmt} ₽</span></div>
+    </div>`;
+    html += `<div class="pay-card">
+      <h3>👤 Ваши данные</h3>
+      <span class="label" style="margin-top:0">Имя *</span>
+      <input placeholder="Как вас зовут" value="${escHtml(state.donateName)}" oninput="state.donateName=this.value">
+      <span class="label">Email *</span>
+      <input type="email" placeholder="your@email.ru" value="${escHtml(state.donateEmail)}" oninput="state.donateEmail=this.value">
+    </div>`;
+    html += `<div class="pay-card">
+      <h3>💳 Способ оплаты</h3>
+      <div class="methods">
+        <button class="method-btn ${state.donatePayMethod==='card'?'active':''}" onclick="state.donatePayMethod='card';renderDonate()">💳 Карта</button>
+        <button class="method-btn ${state.donatePayMethod==='sbp'?'active':''}" onclick="state.donatePayMethod='sbp';renderDonate()">📱 СБП</button>
+        <button class="method-btn ${state.donatePayMethod==='yk'?'active':''}" onclick="state.donatePayMethod='yk';renderDonate()">🏦 ЮКасса</button>
+      </div>
+      ${state.donatePayMethod==='card' ? `
+        <span class="label">Номер карты</span>
+        <input placeholder="0000 0000 0000 0000" inputmode="numeric" maxlength="19" oninput="fmtCard(this)">
+        <div class="card-row" style="margin-top:10px">
+          <div><span class="label" style="margin-top:0">Срок</span><input placeholder="ММ / ГГ" maxlength="7"></div>
+          <div><span class="label" style="margin-top:0">CVV</span><input placeholder="•••" type="password" maxlength="3"></div>
+        </div>` : `<p class="hint" style="margin-top:12px">${state.donatePayMethod==='sbp'?'После нажатия вы будете перенаправлены в ваш банк для оплаты через СБП.':'Откроется страница безопасной оплаты ЮКасса.'}</p>`}
+    </div>`;
+  }
+
+  html += `</div>`;
+  content.innerHTML = html;
+
+  // Footer
+  const finalAmt2 = state.donateAmount ?? parseInt(state.donateCustom) || 0;
+  let footerHtml = '';
+  if (s > 0) footerHtml += `<button class="btn btn-ghost" style="max-width:90px" onclick="state.donateStep--;renderDonate()">← Назад</button>`;
+  if (s < 3) {
+    const disabled = (s===0 && !state.donateChurch) || (s===1 && finalAmt2 < 50) ? 'disabled' : '';
+    footerHtml += `<button class="btn btn-primary" ${disabled} onclick="state.donateStep++;renderDonate()">Далее →</button>`;
+  } else {
+    const ok = state.donateName.trim() && state.donateEmail.trim();
+    footerHtml += `<button class="btn btn-primary" ${ok?'':'disabled'} id="pay-btn" onclick="doPay('donate')">Пожертвовать ${finalAmt2} ₽</button>`;
+  }
+  footer.innerHTML = footerHtml;
+
+  // restore focus on search
+  if (s === 0 && state.search) {
+    const inp = document.getElementById('search-inp');
+    if (inp) { inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length); }
+  }
+}
+
+// ── Treba ─────────────────────────────────────────────────────────────────────
+const TREBA_STEPS = ['Вид требы','Имена','Храм','Оплата'];
+
+function renderTreba() {
+  const s = state.trebaStep;
+  progressFill.style.width = ((s / 3) * 100) + '%';
+  headerSub.textContent = 'Шаг ' + (s+1) + ' из 4 — ' + TREBA_STEPS[s];
+  const sel = TREBAS.find(t => t.id === state.trebaType);
+
+  let html = `<div class="fade-in">`;
+  html += `<div class="step-nav">` + TREBA_STEPS.map((l,i) =>
+    `<div class="dot ${i < s ? 'done' : i === s ? 'active' : ''}"></div>`
+  ).join('') + `</div>`;
+  html += `<div class="step-labels">` + TREBA_STEPS.map(l => `<span>${l}</span>`).join('') + `</div>`;
+
+  if (s === 0) {
+    html += `<div class="h1">Заказать требу</div>`;
+    html += `<div class="sub">Треба — частное богослужение по просьбе верующего</div>`;
+    TREBAS.forEach(t => {
+      const active = state.trebaType === t.id;
+      html += `<div class="card sel ${active?'active':''}" onclick="state.trebaType='${t.id}';renderTreba()">
+        <div class="sel-row">
+          <div class="sel-icon">${t.e}</div>
+          <div class="sel-body">
+            <div class="sel-name">${t.name}</div>
+            <div class="sel-desc">${t.desc}</div>
+          </div>
+          <div>
+            <div class="sel-price">от ${t.price} ₽</div>
+            <div class="sel-check" style="text-align:right;margin-top:4px">✓</div>
+          </div>
+        </div>
+      </div>`;
+    });
+  }
+
+  if (s === 1) {
+    const labelText = sel?.type === 'upokoi' ? '✝️ Имена за упокой' : '❤️ Имена за здравие';
+    html += `<div class="h1">Введите имена</div>`;
+    html += `<div style="display:flex;align-items:center;gap:8px;background:var(--pp);border-radius:10px;padding:12px 14px;margin-bottom:20px">
+      <span style="font-size:22px">${sel?.e}</span>
+      <div><strong style="color:var(--p)">${sel?.name}</strong><span style="color:var(--tm);font-size:13px;margin-left:8px">— ${sel?.price} ₽</span></div>
+    </div>`;
+    html += `<span class="label" style="margin-top:0">${labelText}</span>`;
+    html += `<textarea rows="5" placeholder="Николая, Марии, Анны…" oninput="state.trebaNames=this.value">${escHtml(state.trebaNames)}</textarea>`;
+    html += `<p class="hint">Пишите церковным именем в родительном падеже. Не «Наташа» — а «Наталии».</p>`;
+    html += `<p class="hint" style="margin-top:8px">Не более 10 имён · Каждое с новой строки или через запятую</p>`;
+  }
+
+  if (s === 2) {
+    html += `<div class="h1">Выберите храм</div>`;
+    html += `<div class="sub">Треба будет совершена в выбранном храме</div>`;
+    html += `<span class="label" style="margin-top:0">Храм</span>`;
+    html += `<select onchange="state.trebaChurch=this.value"><option value="">Выберите храм…</option>`;
+    CHURCHES.forEach(c => { html += `<option value="${c.id}" ${state.trebaChurch===c.id?'selected':''}>${c.name} — ${c.city}</option>`; });
+    html += `</select>`;
+    html += `<span class="label">Email для уведомления *</span>`;
+    html += `<input type="email" placeholder="your@email.ru" value="${escHtml(state.trebaEmail)}" oninput="state.trebaEmail=this.value">`;
+    html += `<span class="label">Telegram (необязательно)</span>`;
+    html += `<input placeholder="@username">`;
+    html += `<p class="hint" style="margin-top:10px">Уведомление придёт, когда клирик отметит требу как совершённую. Обычно 1–3 дня.</p>`;
+  }
+
+  if (s === 3) {
+    const ch = CHURCHES.find(c => c.id === state.trebaChurch);
+    html += `<div class="h1">Подтверждение</div>`;
+    html += `<div class="pay-card">
+      <h3>📋 Ваш заказ</h3>
+      <div class="sum-row"><span class="sum-key">Треба</span><span class="sum-val">${sel?.name}</span></div>
+      <div class="sum-row"><span class="sum-key">Имена</span><span class="sum-val">${escHtml(state.trebaNames)}</span></div>
+      <div class="sum-row"><span class="sum-key">Храм</span><span class="sum-val">${ch?.name || '—'}</span></div>
+      <div class="sum-row"><span class="sum-key">Email</span><span class="sum-val">${escHtml(state.trebaEmail)}</span></div>
+      <div class="sum-total"><span>Пожертвование</span><span class="amt">${sel?.price} ₽</span></div>
+    </div>`;
+    html += `<div class="pay-card">
+      <h3>💳 Оплата</h3>
+      <input placeholder="0000 0000 0000 0000" inputmode="numeric" style="margin-bottom:10px">
+      <div class="card-row">
+        <div><input placeholder="ММ / ГГ"></div>
+        <div><input placeholder="CVV" type="password"></div>
+      </div>
+    </div>`;
+  }
+
+  html += `</div>`;
+  content.innerHTML = html;
+
+  let footerHtml = '';
+  if (s > 0) footerHtml += `<button class="btn btn-ghost" style="max-width:90px" onclick="state.trebaStep--;renderTreba()">← Назад</button>`;
+  if (s < 3) {
+    const disabled = (s===0&&!state.trebaType)||(s===1&&!state.trebaNames.trim())||(s===2&&(!state.trebaChurch||!state.trebaEmail.trim())) ? 'disabled' : '';
+    footerHtml += `<button class="btn btn-primary" ${disabled} onclick="state.trebaStep++;renderTreba()">Далее →</button>`;
+  } else {
+    footerHtml += `<button class="btn btn-primary" id="pay-btn" onclick="doPay('treba')">Заказать · ${sel?.price} ₽</button>`;
+  }
+  footer.innerHTML = footerHtml;
+}
+
+// ── Projects ──────────────────────────────────────────────────────────────────
+function renderProjects() {
+  progressFill.style.width = '0%';
+  headerSub.textContent = 'целевые сборы';
+  let html = `<div class="fade-in">`;
+  html += `<div class="h1">Проекты храмов</div>`;
+  html += `<div class="sub">Конкретная цель, реальный результат</div>`;
+  PROJECTS.forEach(p => {
+    const pct = Math.round(p.raised / p.goal * 100);
+    html += `<div class="card" style="margin-bottom:14px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">
+        <div>
+          <div style="font-size:11px;color:var(--tm);margin-bottom:3px">${p.church} · ${p.city}</div>
+          <div style="font-weight:700;font-size:16px;color:var(--pd)">${p.title}</div>
+        </div>
+        <span style="background:var(--pl);color:var(--p);font-size:11px;font-weight:600;padding:4px 8px;border-radius:8px">Активный</span>
+      </div>
+      <div class="progress-bar" style="height:6px;background:var(--b);border-radius:4px;overflow:hidden;margin:12px 0 8px">
+        <div style="height:100%;width:${pct}%;background:linear-gradient(90deg,var(--pd),var(--p));border-radius:4px"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:12px">
+        <span style="color:var(--p);font-weight:600">${fmt(p.raised)} ₽</span>
+        <span style="color:var(--tm)">${pct}% · ${p.donors} жертвователей</span>
+        <span style="color:var(--tm)">из ${fmt(p.goal)} ₽</span>
+      </div>
+      <button class="btn btn-primary" style="width:100%;padding:11px" onclick="state.tab='donate';switchTab('donate')">Помочь</button>
+    </div>`;
+  });
+  html += `</div>`;
+  content.innerHTML = html;
+  footer.innerHTML = '';
+}
+
+// ── FAQ ───────────────────────────────────────────────────────────────────────
+function renderFaq() {
+  progressFill.style.width = '0%';
+  headerSub.textContent = 'частые вопросы';
+  let html = `<div class="fade-in">`;
+  html += `<div class="h1">Частые вопросы</div>`;
+  FAQ.forEach(section => {
+    html += `<div style="font-size:11px;font-weight:700;color:var(--p);text-transform:uppercase;letter-spacing:.08em;margin:20px 0 8px">${section.s}</div>`;
+    html += `<div class="card" style="padding:0 16px">`;
+    section.items.forEach((item, i) => {
+      const key = section.s + i;
+      const isOpen = state.accOpen[key];
+      html += `<div class="acc-item">
+        <button class="acc-head ${isOpen?'open':''}" onclick="state.accOpen['${key}']=!state.accOpen['${key}'];renderFaq()">
+          ${item.q}<span class="chevron">+</span>
+        </button>
+        <div class="acc-body ${isOpen?'open':''}">${item.a}</div>
+      </div>`;
+    });
+    html += `</div>`;
+  });
+  html += `</div>`;
+  content.innerHTML = html;
+  footer.innerHTML = '';
+}
+
+// ── Success ───────────────────────────────────────────────────────────────────
+function renderSuccess() {
+  progressFill.style.width = '100%';
+  headerSub.textContent = 'заказ принят';
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  const isDonate = state.successType === 'donate';
+  content.innerHTML = `<div class="success-wrap fade-in">
+    <div class="big-icon">✝️</div>
+    <h2>${isDonate ? 'Благодарим вас!' : 'Слава Богу!'}</h2>
+    <p>${isDonate
+      ? 'Ваше пожертвование получено. Средства поступят на счёт прихода в течение 1–2 рабочих дней.'
+      : 'Ваша заявка принята. Когда треба будет совершена — вы получите уведомление.'}</p>
+    <p>Квитанция отправлена на ваш email.</p>
+    <blockquote style="text-align:left;margin-top:20px">«Блажени милостивии, яко тии помилованы будут» — Мф 5:7</blockquote>
+  </div>`;
+  footer.innerHTML = `
+    <button class="btn btn-ghost" onclick="resetAll()">На главную</button>
+    <button class="btn btn-primary" onclick="state.success=false;state.tab='treba';state.trebaStep=0;render()">Ещё требу</button>
+  `;
+
+  // Уведомить Telegram о завершении
+  if (tg) tg.HapticFeedback?.notificationOccurred('success');
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function escHtml(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function fmt(n) {
+  return n.toLocaleString('ru');
+}
+function fmtCard(inp) {
+  let v = inp.value.replace(/\D/g,'').substring(0,16);
+  inp.value = v.replace(/(.{4})/g,'$1 ').trim();
+}
+function resetAll() {
+  state = { ...state, tab:'donate', donateStep:0, donateChurch:null, donateAmount:null, donateCustom:'', donateRecurrent:false, donatePomin:'', donateName:'', donateEmail:'', trebaStep:0, trebaType:null, trebaNames:'', trebaChurch:'', trebaEmail:'', success:false, search:'' };
+  switchTab('donate');
+}
+
+async function doPay(type) {
+  const btn = document.getElementById('pay-btn');
+  if (btn) { btn.disabled = true; btn.innerHTML = '<div class="spinner"></div>'; }
+  if (tg) tg.HapticFeedback?.impactOccurred('medium');
+
+  // Здесь будет реальный вызов API оплаты (ЮКасса / Stripe)
+  // const res = await fetch('/api/checkout', { method:'POST', body: JSON.stringify({amount, email}) });
+  await new Promise(r => setTimeout(r, 1800));
+
+  state.success = true;
+  state.successType = type;
+  render();
+}
+
+// ── Boot ──────────────────────────────────────────────────────────────────────
+render();
+</script>
+</body>
+</html>
